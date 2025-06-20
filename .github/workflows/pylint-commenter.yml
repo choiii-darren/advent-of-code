@@ -1,0 +1,41 @@
+name: Pylint PR Comment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pylint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install pylint
+
+      - name: Run pylint and save output
+        id: run_pylint
+        run: |
+          pylint your_package_or_file.py > pylint_output.txt || true
+          echo "PYLINT_RESULT<<EOF" >> $GITHUB_ENV
+          cat pylint_output.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Comment on PR
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            🧹 **Pylint Report** on `${{ github.head_ref }}`:
+            ```
+            ${{ env.PYLINT_RESULT }}
+            ```
